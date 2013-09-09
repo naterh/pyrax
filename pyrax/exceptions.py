@@ -146,6 +146,9 @@ class InvalidNodeParameters(PyraxException):
 class InvalidPTRRecord(PyraxException):
     pass
 
+class InvalidRecipientTypeException(PyraxException):
+    pass
+
 class InvalidSessionPersistenceType(PyraxException):
     pass
 
