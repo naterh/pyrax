@@ -193,6 +193,13 @@ class MailgunManager(BaseManager):
         return response
 
 
+    def _create_body(self, name):
+        """
+        Update with body creation bits.
+        """
+        pass
+
+    
     def create(self, dom_name, smtp_pass):
         """Creates Mailgun domain with supplied password."""
         data = {"name": dom_name, "smtp_password": smtp_pass}
@@ -500,13 +507,6 @@ class MailgunClient(BaseClient):
         self._manager = MailgunManager(self, resource_class=MailgunDomain,
                 response_key="domain", plural_response_key="items", 
                 uri_base="domains")
-
-
-    def _create_body(self, name, label=None, cidr=None):
-        """
-        Update with body creation bits.
-        """
-        pass
         
 
     def _api_request(self, uri, method, **kwargs):
