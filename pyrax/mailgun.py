@@ -41,93 +41,56 @@ class MailgunDomain(BaseResource):
         self.id = self.name
 
 
-    def send_simple_message(self, sender, recipients, subject, text):
-        """Send simple plain text message."""
-        return self.manager.send_simple_message(self.name, sender, recipients,
-                subject, text)
+    def send_message(self, sender, recipients, **kwargs):
+        """Send an email message.
+            :param dom_name: string name
+            :param sender: string email address
+            :param recipients: string or list of string email addresses
+            :param subject: string
+            :param text: string for plain text msgs
+            :param cc: string or list of string addresses
+            :param bcc: same as cc
+            :param html: string
+            :param files: list of python file objects
+            :param mime_file: python file object
+            :param tracking: bool defaults to True
+            :param delivery_time: date time string
+            :param tags: list of dicts for custom attrs ie [{'age': 32}]
+            :param inline_images: list of python file objects. Access via cid
+            :param recipient_vars: tuple for custom email variables ex. 
+                   ('{"bob@example.com": {"first":"Bob", "id":1}) can be accessed
+                   via %recipient.first% anywhere in the subject or text body.
+        """
+        return self.manager.send_message(self.name, sender, recipients, **kwargs)
 
 
-    def send_complex_message(self, sender, recipients, subject, text,
-            cc=None, bcc=None, html=None, files=None):
-        """Send message that could include cc, bcc, files and html."""
-        return self.manager.send_complex_message(self.name, sender, recipients,
-                subject, text, cc=cc, bcc=bcc, html=html, files=files)
-
-
-    def send_mime_message(self, recipient, mime_file):
-        """Send message as included mime file."""
-        return self.manager.send_mime_message(self.name, recipient, mime_file)
-
-
-    def send_message_no_tracking(self, sender, recipients, subject, text):
-        """Send message with o:tracking tag set to False."""
-        return self.manager.send_message_no_tracking(self.name, sender,
-                recipients, subject, text)
-
-
-    def send_scheduled_message(self, sender, recipient, subject, text,
-            delivery_time):
-        """Send message at a scheduled time."""
-        return self.manager.send_scheduled_message(self.name, sender, recipient,
-                subject, text, delivery_time)
-
-
-    def send_tagged_message(self, sender, recipients, subject, text, tags=None):
-        """Send message with custom tags."""
-        return self.manager.send_tagged_message(self.name, sender, recipients,
-                subject, text, tags=tags)
-
-
-    def send_inline_image(self, sender, recipient, subject, text, html, files):
-        """Send message with inline images."""
-        return self.manager.send_inline_image(self.name, sender, recipient,
-                subject, text, html, files)
-
-
-    def send_template_message(self, sender, recipients, subject, text,
-            recipient_vars):
-        """Send template message supporting variables."""
-        return self.manager.send_template_message(self.name, sender, recipients,
-                subject, text, recipient_vars)
-
-
-    def get_logs(self, start_time, limit=None, ascending=None, pretty=None,
+    def get_logs(self, start_time, limit=100, ascending="yes", pretty="yes",
             sender=None, receiver=None):
-        """Return event logs for domain."""
-        return self.manager.get_logs(self.name, start_time, limit=limit,
-                ascending=ascending, pretty=pretty, sender=sender,
-                receiver=receiver)
+        """Return event logs for domain.
+            :params start_time: date time string
+            :params limit: for pagination int
+            :params ascending: ordering string 
+            :params pretty: pretty print string
+            :params sender: email string
+            :params receiver: email string
+        """
+        return self.manager.get_logs(self.name, start_time, limit, ascending,
+                pretty, sender, receiver)
 
 
-    def get_stats(self, events=None, skip=None, limit=None):
+    def get_stats(self, events, skip=0, limit=100):
         """
         Return event stats for domain.
+            :params events: list of events ex ["sent", "opened"]
+            :params skip: offset int
+            :params limit: int
         """
-        return self.manager.get_stats(self.name, events=events, skip=skip,
-                limit=limit)
+        return self.manager.get_stats(self.name, events, skip, limit)
 
 
-    def create_campaign(self, name, campaign_id):
-        """Creates an email campaign."""
-        return self.manager.create_campaign(self.name, campaign_id)
-
-
-    def send_campaign_message(self, sender, recipients, subject, text,
-            campaign_id):
-        """Send a message to an existing campaign."""
-        return self.manager.send_campaign_message(self.name, sender, recipients,
-                subject, text, campaign_id)
-
-
-    def get_campaign_stats(self, campaign_id, limit=None, group_by=None):
-        """Get statistics on campaign messages."""
-        return self.manager.get_campaign_stats(self.name, campaign_id,
-                limit=limit, group_by=group_by)
-
-
-    def get_mailboxes(self):
+    def list_mailboxes(self):
         """Returns list of mailboxes on current domain."""
-        return self.manager.get_mailboxes(self.name)
+        return self.manager.list_mailboxes(self.name)
 
 
     def create_mailbox(self, mailbox_address, password):
@@ -144,6 +107,34 @@ class MailgunDomain(BaseResource):
     def delete_mailbox(self, mailbox_name):
         """Deletes specified mailbox from current domain."""
         return self.manager.delete_mailbox(self.name, mailbox_name)
+
+
+###
+# Not yet implemented in pyrax
+###
+'''
+    def create_campaign(self, name, campaign_id):
+        """Creates an email campaign."""
+        return self.manager.create_campaign(self.name, campaign_id)
+
+
+    def send_campaign_message(self, sender, recipients, subject, text,
+            campaign_id):
+        """Send a message to an existing campaign.
+            :params sender: email string
+            :params recipients: list of emails
+            :params subject: string
+            :params text: string
+            :params campaign_id: sting
+        """
+        return self.manager.send_campaign_message(self.name, sender, recipients,
+                subject, text, campaign_id)
+
+
+    def get_campaign_stats(self, campaign_id, limit=None, group_by=None):
+        """Get statistics on campaign messages."""
+        return self.manager.get_campaign_stats(self.name, campaign_id,
+                limit=limit, group_by=group_by)
 
 
     def list_webhooks(self):
@@ -169,7 +160,7 @@ class MailgunDomain(BaseResource):
     def delete_webhook(self, webhook):
         """Deletes specified webhook from current domain."""
         return self.manager.delete_webhook(self.name, webhook)
-
+'''
 
 
 class MailgunManager(BaseManager):
@@ -238,118 +229,54 @@ class MailgunManager(BaseManager):
             raise exceptions.DomainDeletionFailed("(%s) %s" % (resp,
                     resp_body['message']))
 
-
-    def send_simple_message(self, dom_name, sender, recipients, subject, text):
-        """Send simple plain text message."""
+    def send_message(self, dom_name, sender, recipients, **kwargs):
+        """Send an email message.
+            :param dom_name: string name
+            :param sender: string email address
+            :param recipients: string or list of string email addresses
+            :param subject: string
+            :param text: string for plain text msgs
+            :param cc: string or list of string addresses
+            :param bcc: same as cc
+            :param html: string
+            :param files: list of python file objects
+            :param mime_file: python file object
+            :param tracking: bool defaults to True via api
+            :param delivery_time: date time string
+            :param tags: list of dicts for custom attrs ie [{'age': 32}]
+            :param inline_images: list of python file objects. Access via cid
+            :param recipient_vars: tuple for custom email variables ex. 
+                   ('{"bob@example.com": {"first":"Bob", "id":1}') can be accessed
+                   via %recipient.first% anywhere in the subject or text body.
+        """
+        files = []
         uri = "/%s/messages" % dom_name
-        data = {"from": sender,
-                "to": recipients,
-                "subject": subject,
-                "text": text,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def send_complex_message(self, dom_name, sender, recipients, subject, text,
-            cc=None, bcc=None, html=None, files=None):
-        """Send message that could include cc, bcc, files and html."""
-        uri = "/%s/messages" % dom_name
-        data = {"from": sender,
-                "to": recipients,
-                "cc": cc,
-                "bcc": bcc,
-                "subject": subject,
-                "text": text,
-                "html": html,
-                } 
+        data = {"from": sender, "to": recipients}
+        if kwargs.get('files'):
+            attachments = kwargs.pop('files')
+            files = MultiDict()
+            for attachment in attachments:
+                files.add("attachment", attachment)
+        if kwargs.get('inline_images'):
+            images = kwargs.pop('inline_images')
+            if not files:
+                files = MultiDict()
+            for image in images:
+                files.add('inline', image)
+        if kwargs.get('mime_file'):
+            mime_file = kwargs.pop('mime_file')
+            files = {"message": mime_file}
+        if kwargs.get('tracking') is False:
+            kwargs['o:tracking'] = kwargs.pop('tracking')
+        if kwargs.get('delivery_time'):
+            kwargs["o:deliverytime"] = utils.rfc2822_format(kwargs.pop('delivery_time'))
+        if kwargs.get('tags'):
+            for tag in kwargs.pop('tags'):
+                data.update(tag)
+        if kwargs.get('recipient_vars'):
+            kwargs['recipient-variables'] = kwargs.pop('recipient_vars')
+        data.update(kwargs)
         return self.api.method_post(uri, data=data, files=files)
-
-
-    def send_mime_message(self, dom_name, recipient, mime_file):
-        """Send message as included mime file."""
-        uri = "/%s/messages.mime" % dom_name
-        data = {"to": recipient}
-        files = {"message": mime_file}
-        return self.api.method_post(uri, data=data, files=files)
-
-
-    def send_message_no_tracking(self, dom_name, sender, recipients, subject,
-            text):
-        """Send message with o:tracking tag set to False."""
-        uri = "/%s/messages" % dom_name
-        data = {"from": sender,
-                "to": recipients,
-                "subject": subject,
-                "text": text,
-                "o:tracking": False,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def send_scheduled_message(self, dom_name, sender, recipient, subject, text,
-            delivery_time):
-        """Send message at a scheduled time."""
-        uri = "/%s/messages" % dom_name
-        # The delivery_time must be in RFC 2822 format
-        delivery_time = utils.rfc2822_format(delivery_time)
-        data = {"from": sender,
-                "to": recipient,
-                "subject": subject,
-                "text": text,
-                "o:deliverytime": delivery_time,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def send_tagged_message(self, dom_name, sender, recipients, subject, text,
-            tags=None):
-        """Send message with custom tags."""
-        if tags is None:
-            tags = []
-        uri = "/%s/messages" % dom_name
-        data = MultiDict([("from", sender),
-                        ("subject", subject),
-                        ("text", text)])
-        if isinstance(recipients, basestring):
-            data.add("to", recipients)
-        elif isinstance(recipients, (list, tuple)):
-            for item in recipients:
-                data.add("to", item)
-        else:
-            raise exceptions.InvalidRecipientTypeException("The received "
-                    "recipients are not valid: %s" % str(recipients))
-        for tag in tags:
-            for k, v in tag.items():
-                data.add(k, v)
-        return self.api.method_post(uri, data=data)
-
-
-    def send_inline_image(self, dom_name, sender, recipient, subject, text,
-            html, files):
-        """Send message with inline images."""
-        uri = "/%s/messages" % dom_name
-        files = MultiDict()
-        data = {"from": sender,
-                "to": recipient,
-                "subject": subject,
-                "text": text,
-                "html": html}
-        for item in files:
-            for k, v in item.items():
-                files.add(k, v)
-        return self.api.method_post(uri, data=data, files=files)
-
-
-    def send_template_message(self, dom_name, sender, recipients, subject,
-            text, recipient_vars):
-        """Send template message supporting variables."""
-        uri = "/%s/messages" % dom_name
-        data = {"from": sender,
-                "to": recipients,
-                "subject": subject,
-                "text": text,
-                "recipient-variables": recipient_vars}
-        return self.api.method_post(uri, data=data)
 
 
     def get_logs(self, dom_name, start_time, limit=100, ascending="yes",
@@ -358,9 +285,7 @@ class MailgunManager(BaseManager):
         params = {"begin": start_time,
                 "ascending": ascending,
                 "limit": limit,
-                "pretty": pretty,
-                "f:recipient": "joe@example.com",
-                }
+                "pretty": pretty}
         if sender:
             params["f:recipient"] = sender
         if receiver:
@@ -369,7 +294,7 @@ class MailgunManager(BaseManager):
 
 
     def get_stats(self, dom_name, events, skip, limit):
-        uri = "/%s/stats" % dom_name,
+        uri = "/%s/stats" % dom_name
         params = {"event": events,
                 "skip": skip,
                 "limit": limit,
@@ -377,6 +302,73 @@ class MailgunManager(BaseManager):
         return self.api.method_get(uri, params=params)
 
 
+    def list_mailboxes(self, dom_name):
+        uri = "/%s/mailboxes" % dom_name
+        return self.api.method_get(uri)
+
+
+    def create_mailbox(self, dom_name, mailbox_address, password):
+        uri = "/%s/mailboxes" % dom_name
+        data = {"mailbox": mailbox_address,
+                "password": password}
+        return self.api.method_post(uri, data=data)
+
+
+    def change_mailbox_password(self, dom_name, mailbox_name, password):
+        uri = "/%s/mailboxes/%s" % (dom_name, mailbox_name)
+        data = {"password": password}
+        return self.api.method_put(uri, data=data)
+
+
+    def delete_mailbox(self, dom_name, mailbox_name):
+        uri = "/%s/mailboxes/%s" % (dom_name, mailbox_name)
+        return self.api.method_delete(uri)
+
+
+    def create_mailing_list(self, address, description):
+        uri= "/lists"
+        data = {"address": address,
+                "description": description,
+                }
+        return self.api.method_post(uri, data=data)
+
+
+    def add_list_member(self, list_name, address, **kwargs):
+        uri = "/lists/%s/members" % list_name
+        data = {"subscribed": True, "address": address}
+        data.update(kwargs)
+        return self.api.method_post(uri, data=data)
+
+
+    def update_list_member(self, list_name, address, **kwargs):
+        uri = "/lists/%s/members/%s" % (list_name, address)
+        return self.api.method_put(uri, data=kwargs)
+
+
+    def list_members(self, list_name):
+        uri = "/lists/%s/members" % list_name
+        return self.api.method_get(uri)
+
+
+    def delete_list_member(self, list_name, member_name):
+        uri = "/lists/%s/members/%s" % (list_name, member_name)
+        return self.api.method_delete(uri)
+
+
+    def delete_mailing_list(self, list_name):
+        uri = "/lists/%s" % list_name
+        return self.api.method_delete(uri)
+
+
+    def get_list_stats(self, list_name):
+        uri = "/lists/%s/stats" % list_name
+        return self.api.method_get(uri)
+
+
+###
+# Not Yet Implemeted in pyrax
+###
+"""
     def create_campaign(self, dom_name, name, campaign_id):
         uri = "/%s/campaigns" % dom_name
         data = {"name": name,
@@ -402,30 +394,6 @@ class MailgunManager(BaseManager):
         uri = "/%s/campaigns/%s/stats?groupby=%s&limit=%s" % (dom_name,
                 campaign_id, group_by, limit)
         return self.api.method_get(uri)
-
-
-    def get_mailboxes(self, dom_name):
-        uri = "/%s/mailboxes", dom_name
-        return self.api.method_get(uri)
-
-
-    def create_mailbox(self, dom_name, mailbox_address, password):
-        uri = "/%s/mailboxes" % dom_name
-        data = {"mailbox": mailbox_address,
-                "password": password,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def change_mailbox_password(self, dom_name, mailbox_name, password):
-        uri = "/%s/mailboxes/%s" % (dom_name, mailbox_name)
-        data = {"password": password}
-        return self.api.method_put(uri, data=data)
-
-
-    def delete_mailbox(self, dom_name, mailbox_name):
-        uri = "/%s/mailboxes/%s" % (dom_name, mailbox_name)
-        return self.api.method_delete(uri)
 
 
     def list_webhooks(self, dom_name):
@@ -455,38 +423,7 @@ class MailgunManager(BaseManager):
     def delete_webhook(self, dom_name, webhook):
         uri = "/domains/%s/webhooks/%s" % webhook
         return self.api.method_delete(uri)
-
-
-    def create_mailing_list(self, address, description):
-        uri= "/lists"
-        data = {"address": address,
-                "description": description,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def add_list_member(self, list_name, name, address, description, extra):
-        uri = "lists/%s/members" % list_name
-        data = {"subscribed": True,
-                "address": address,
-                "name": name,
-                "description": description,
-                "vars": extra,
-                }
-        return self.api.method_post(uri, data=data)
-
-
-    def update_list_member(self, list_name, name, address, description, extra,
-            subscribed=True):
-        uri = "lists/%s/members" % list_name
-        data = {"subscribed": subscribed,
-                "address": address,
-                "name": name,
-                "description": description,
-                "vars": extra,
-                }
-        return self.api.method_put(uri, data=data)
-
+"""
 
 
 class MailgunClient(BaseClient):
@@ -502,7 +439,7 @@ class MailgunClient(BaseClient):
 
     def _configure_manager(self):
         """
-        Creates the Manager instance to handle networks.
+        Creates the Manager instance to handle mailgun.
         """
         self._manager = MailgunManager(self, resource_class=MailgunDomain,
                 response_key="domain", plural_response_key="items", 
@@ -514,9 +451,11 @@ class MailgunClient(BaseClient):
         Uses requests to perform api request.
         """
         try:
-            
+            print self.management_url + uri
             req = getattr(requests, method.lower())(self.management_url + uri,
                 headers=HEADERS, auth=self.auth, **kwargs)
+            print req.text
+            print req.status_code
             response = req.json()
             code = req.status_code
         except requests.exceptions.RequestException as exc:
@@ -529,12 +468,25 @@ class MailgunClient(BaseClient):
         return self._manager.create_mailing_list(address, description)
 
 
-    def add_list_member(self, list_name, name, address, description, extra):
-        return self._manager.add_list_member(list_name, name, address,
-                description, extra)
+    def add_list_member(self, list_name, address, **kwargs):
+        return self._manager.add_list_member(list_name, address, **kwargs)
 
 
-    def update_list_member(self, list_name, name, address, description, extra,
-            subscribed=True):
-        return self._manager.update_list_member(list_name, name, address,
-                description, extra, subscribed=subscribed)
+    def update_list_member(self, list_name, address, **kwargs):
+        return self._manager.update_list_member(list_name, address, **kwargs)
+
+
+    def list_members(self, list_name):
+        return self._manager.list_members(list_name)
+
+
+    def delete_list_member(self, list_name, member_name):
+        return self._manager.delete_list_member(list_name, member_name)\
+
+
+    def delete_mailing_list(self, list_name):
+        return self._manager.delete_mailing_list(list_name)
+
+
+    def get_list_stats(self, list_name):
+        return self._manager.get_list_stats(list_name)
