@@ -266,6 +266,25 @@ class CloudMonitorEntityManager(BaseManager):
     """
     Handles all of the entity-specific requests.
     """
+    def _create_body(self, name, label=None, agent=None, ip_addresses=None,
+            metadata=None):
+        """
+        Used to create the dict required to create various resources. Accepts
+        either 'label' or 'name' as the keyword parameter for the label
+        attribute for entities.
+        """
+        label = label or name
+        if ip_addresses is not None:
+            body = {"label": label}
+            if ip_addresses:
+                body["ip_addresses"] = ip_addresses
+            if agent:
+                body["agent_id"] = utils.get_id(agent)
+            if metadata:
+                body["metadata"] = metadata
+        return body
+
+
     def update_entity(self, entity, agent=None, metadata=None):
         """
         Updates the specified entity's values with the supplied parameters.
@@ -484,6 +503,7 @@ class CloudMonitorEntityManager(BaseManager):
         start_tm = utils.to_timestamp(start)
         end_tm = utils.to_timestamp(end)
         qparms = []
+        # Timestamps with fractional seconds currently cause a 408 (timeout)
         qparms.append("from=%s" % int(start_tm))
         qparms.append("to=%s" % int(end_tm))
         if points:
@@ -821,7 +841,7 @@ class CloudMonitorClient(BaseClient):
 
     def _configure_manager(self):
         """
-        Creates the Manager instance to handle networks.
+        Creates the Manager instances to handle monitoring.
         """
         self._entity_manager = CloudMonitorEntityManager(self,
                 uri_base="entities", resource_class=CloudMonitorEntity,
@@ -847,14 +867,6 @@ class CloudMonitorClient(BaseClient):
         Returns a dict with the following keys: id, webhook_token, and metadata.
         """
         resp, resp_body = self.method_get("/account")
-        return resp_body
-
-
-    def get_limits(self):
-        """
-        Returns a dict with the resource and rate limits for the account.
-        """
-        resp, resp_body = self.method_get("/limits")
         return resp_body
 
 
@@ -1198,22 +1210,3 @@ class CloudMonitorClient(BaseClient):
         """Not applicable in Cloud Monitoring."""
         raise NotImplementedError
     #################################################################
-
-
-    def _create_body(self, name, label=None, agent=None, ip_addresses=None,
-            metadata=None):
-        """
-        Used to create the dict required to create various resources. Accepts
-        either 'label' or 'name' as the keyword parameter for the label
-        attribute for entities.
-        """
-        label = label or name
-        if ip_addresses is not None:
-            body = {"label": label}
-            if ip_addresses:
-                body["ip_addresses"] = ip_addresses
-            if agent:
-                body["agent_id"] = utils.get_id(agent)
-            if metadata:
-                body["metadata"] = metadata
-        return body

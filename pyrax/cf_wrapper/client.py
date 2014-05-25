@@ -155,15 +155,14 @@ class CFClient(object):
     def _massage_metakeys(self, dct, prfx):
         """
         Returns a copy of the supplied dictionary, prefixing any keys that do
-        not begin with the specified prefix accordingly. Also lowercases all of
-        the keys since that's what is returned by the API.
+        not begin with the specified prefix accordingly.
         """
         lowprefix = prfx.lower()
         ret = {}
         for k, v in dct.iteritems():
             if not k.lower().startswith(lowprefix):
                 k = "%s%s" % (prfx, k)
-            ret[k.lower()] = v
+            ret[k] = v
         return ret
 
 
@@ -184,29 +183,34 @@ class CFClient(object):
 
     @handle_swiftclient_exception
     def set_account_metadata(self, metadata, clear=False,
-            extra_info=None):
+            extra_info=None, prefix=None):
         """
-        Accepts a dictionary of metadata key/value pairs and updates
-        the specified account metadata with them.
+        Accepts a dictionary of metadata key/value pairs and updates the
+        specified account metadata with them.
 
-        If 'clear' is True, any existing metadata is deleted and only
-        the passed metadata is retained. Otherwise, the values passed
-        here update the account's metadata.
+        If 'clear' is True, any existing metadata is deleted and only the
+        passed metadata is retained. Otherwise, the values passed here update
+        the account's metadata.
 
-        extra_info is an optional dictionary which will be
-        populated with 'status', 'reason', and 'headers' keys from the
-        underlying swiftclient call.
+        'extra_info' is an optional dictionary which will be populated with
+        'status', 'reason', and 'headers' keys from the underlying swiftclient
+        call.
+
+        By default, the standard account metadata prefix ('X-Account-Meta-') is
+        prepended to the header name if it isn't present. For non-standard
+        headers, you must include a non-None prefix, such as an empty string.
         """
         # Add the metadata prefix, if needed.
-        massaged = self._massage_metakeys(metadata, self.account_meta_prefix)
+        if prefix is None:
+            prefix = self.account_meta_prefix
+        massaged = self._massage_metakeys(metadata, prefix)
         new_meta = {}
         if clear:
             curr_meta = self.get_account_metadata()
             for ckey in curr_meta:
                 new_meta[ckey] = ""
         new_meta.update(massaged)
-        self.connection.post_account(new_meta,
-                response_dict=extra_info)
+        self.connection.post_account(new_meta, response_dict=extra_info)
 
 
     @handle_swiftclient_exception
@@ -287,35 +291,43 @@ class CFClient(object):
 
 
     @handle_swiftclient_exception
-    def get_container_metadata(self, container):
+    def get_container_metadata(self, container, prefix=None):
         """Returns a dictionary containing the metadata for the container."""
         cname = self._resolve_name(container)
         headers = self.connection.head_container(cname)
-        prfx = self.container_meta_prefix.lower()
+        if prefix is None:
+            prefix = self.container_meta_prefix.lower()
         ret = {}
         for hkey, hval in headers.iteritems():
-            if hkey.lower().startswith(prfx):
+            if hkey.lower().startswith(prefix):
                 ret[hkey] = hval
         return ret
 
 
     @handle_swiftclient_exception
     def set_container_metadata(self, container, metadata, clear=False,
-            extra_info=None):
+            extra_info=None, prefix=None):
         """
-        Accepts a dictionary of metadata key/value pairs and updates
-        the specified container metadata with them.
+        Accepts a dictionary of metadata key/value pairs and updates the
+        specified container metadata with them.
 
-        If 'clear' is True, any existing metadata is deleted and only
-        the passed metadata is retained. Otherwise, the values passed
-        here update the container's metadata.
+        If 'clear' is True, any existing metadata is deleted and only the
+        passed metadata is retained. Otherwise, the values passed here update
+        the container's metadata.
 
-        extra_info is an optional dictionary which will be
-        populated with 'status', 'reason', and 'headers' keys from the
-        underlying swiftclient call.
+        'extra_info' is an optional dictionary which will be populated with
+        'status', 'reason', and 'headers' keys from the underlying swiftclient
+        call.
+
+        By default, the standard container metadata prefix
+        ('X-Container-Meta-') is prepended to the header name if it isn't
+        present. For non-standard headers, you must include a non-None prefix,
+        such as an empty string.
         """
         # Add the metadata prefix, if needed.
-        massaged = self._massage_metakeys(metadata, self.container_meta_prefix)
+        if prefix is None:
+            prefix = self.container_meta_prefix
+        massaged = self._massage_metakeys(metadata, prefix)
         cname = self._resolve_name(container)
         new_meta = {}
         if clear:
@@ -399,21 +411,27 @@ class CFClient(object):
 
     @handle_swiftclient_exception
     def set_object_metadata(self, container, obj, metadata, clear=False,
-            extra_info=None):
+            extra_info=None, prefix=None):
         """
-        Accepts a dictionary of metadata key/value pairs and updates
-        the specified object metadata with them.
+        Accepts a dictionary of metadata key/value pairs and updates the
+        specified object metadata with them.
 
-        If 'clear' is True, any existing metadata is deleted and only
-        the passed metadata is retained. Otherwise, the values passed
-        here update the object's metadata.
+        If 'clear' is True, any existing metadata is deleted and only the
+        passed metadata is retained. Otherwise, the values passed here update
+        the object's metadata.
 
-        extra_info is an optional dictionary which will be
-        populated with 'status', 'reason', and 'headers' keys from the
-        underlying swiftclient call.
+        'extra_info; is an optional dictionary which will be populated with
+        'status', 'reason', and 'headers' keys from the underlying swiftclient
+        call.
+
+        By default, the standard object metadata prefix ('X-Object-Meta-') is
+        prepended to the header name if it isn't present. For non-standard
+        headers, you must include a non-None prefix, such as an empty string.
         """
         # Add the metadata prefix, if needed.
-        massaged = self._massage_metakeys(metadata, self.object_meta_prefix)
+        if prefix is None:
+            prefix = self.object_meta_prefix
+        massaged = self._massage_metakeys(metadata, prefix)
         cname = self._resolve_name(container)
         oname = self._resolve_name(obj)
         new_meta = {}
@@ -450,7 +468,7 @@ class CFClient(object):
     def create_container(self, name, extra_info=None):
         """Creates a container with the specified name.
 
-        extra_info is an optional dictionary which will be
+        'extra_info' is an optional dictionary which will be
         populated with 'status', 'reason', and 'headers' keys from the
         underlying swiftclient call.
         """
@@ -468,11 +486,11 @@ class CFClient(object):
         the container's objects will be deleted before the container is
         deleted.
 
-        extra_info is an optional dictionary which will be
+        'extra_info' is an optional dictionary which will be
         populated with 'status', 'reason', and 'headers' keys from the
         underlying swiftclient call.
         """
-        self._remove_container_from_cache(container)
+        self.remove_container_from_cache(container)
         cname = self._resolve_name(container)
         if del_objects:
             objs = self.get_container_object_names(cname)
@@ -482,7 +500,7 @@ class CFClient(object):
         return True
 
 
-    def _remove_container_from_cache(self, container):
+    def remove_container_from_cache(self, container):
         """Removes the container from the cache."""
         nm = self._resolve_name(container)
         self._container_cache.pop(nm, None)
@@ -492,7 +510,7 @@ class CFClient(object):
     def delete_object(self, container, name, extra_info=None):
         """Deletes the specified object from the container.
 
-        extra_info is an optional dictionary which will be
+        'extra_info' is an optional dictionary which will be
         populated with 'status', 'reason', and 'headers' keys from the
         underlying swiftclient call.
         """
@@ -537,7 +555,7 @@ class CFClient(object):
         the given data. A StorageObject reference to the uploaded file
         will be returned, unless 'return_none' is set to True.
 
-        extra_info is an optional dictionary which will be
+        'extra_info' is an optional dictionary which will be
         populated with 'status', 'reason', and 'headers' keys from the
         underlying swiftclient call.
         """
@@ -582,17 +600,19 @@ class CFClient(object):
 
 
     @handle_swiftclient_exception
-    def move_object(self, container, obj, new_container, new_obj_name=None):
+    def move_object(self, container, obj, new_container, new_obj_name=None,
+            extra_info=None):
         """
         Works just like copy_object, except that the source object is deleted
         after a successful copy.
         """
         new_obj_etag = self.copy_object(container, obj, new_container,
-                new_obj_name=new_obj_name)
+                new_obj_name=new_obj_name, extra_info=extra_info)
         if new_obj_etag:
             # Copy succeeded; delete the original.
             self.delete_object(container, obj)
         return new_obj_etag
+
 
     @handle_swiftclient_exception
     def change_object_content_type(self, container, obj, new_ctype,
@@ -937,7 +957,7 @@ class CFClient(object):
             Element 0: a dictionary containing metadata about the file.
             Element 1: a stream of bytes representing the object's contents.
 
-        extra_info is an optional dictionary which will be
+        'extra_info' is an optional dictionary which will be
         populated with 'status', 'reason', and 'headers' keys from the
         underlying swiftclient call.
         """
@@ -987,11 +1007,19 @@ class CFClient(object):
 
 
     @handle_swiftclient_exception
-    def get_container(self, container):
+    def get_container(self, container, cached=True):
+        """
+        Returns a reference to the specified container. By default, if a
+        reference to that container has already been retrieved, a cached
+        reference will be returned. If you need to get an updated version of
+        the container, pass `cached=False` to the method call.
+        """
         cname = self._resolve_name(container)
         if not cname:
             raise exc.MissingName("No container name specified")
-        cont = self._container_cache.get(cname)
+        cont = None
+        if cached:
+            cont = self._container_cache.get(cname)
         if not cont:
             hdrs = self.connection.head_container(cname)
             cont = Container(self, name=cname,
@@ -1032,6 +1060,24 @@ class CFClient(object):
 
 
     @handle_swiftclient_exception
+    def list_container_subdirs(self, container, marker=None, limit=None,
+            prefix=None, delimiter=None, full_listing=False):
+        """
+        Return a list of StorageObjects representing the pseudo-subdirectories
+        in the specified container. You can use the marker and limit params to
+        handle pagination, and the prefix and delimiter params to filter the
+        objects returned.
+        """
+        cname = self._resolve_name(container)
+        hdrs, objs = self.connection.get_container(cname, marker=marker,
+                limit=limit, prefix=prefix, delimiter=delimiter,
+                full_listing=full_listing)
+        cont = self.get_container(cname)
+        return [StorageObject(self, container=cont, attdict=obj) for obj in objs
+                if obj.get("content_type") == "application/directory"]
+
+
+    @handle_swiftclient_exception
     def get_info(self):
         """
         Returns a tuple for the number of containers and total bytes in
@@ -1039,6 +1085,14 @@ class CFClient(object):
         """
         hdrs = self.connection.head_container("")
         return (hdrs["x-account-container-count"], hdrs["x-account-bytes-used"])
+
+
+    @handle_swiftclient_exception
+    def list(self, limit=None, marker=None, **parms):
+        """Returns a list of all container objects."""
+        hdrs, conts = self.connection.get_container("")
+        ret = [self.get_container(cont["name"]) for cont in conts]
+        return ret
 
 
     @handle_swiftclient_exception
@@ -1106,7 +1160,7 @@ class CFClient(object):
             if hdr[0].lower() == "x-cdn-uri":
                 ct.cdn_uri = hdr[1]
                 break
-        self._remove_container_from_cache(container)
+        self.remove_container_from_cache(container)
         # Read the response to force it to close for the next request.
         response.read()
 

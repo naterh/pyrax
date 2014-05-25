@@ -139,6 +139,26 @@ class CF_ContainerTest(unittest.TestCase):
         self.assertEqual(obj.name, "fake")
 
     @patch('pyrax.cf_wrapper.client.Container', new=FakeContainer)
+    def test_get_object_from_cache(self):
+        cont = self.container
+        cont.client.connection.get_container = Mock()
+        cont.client.connection.head_object = Mock(return_value=fake_attdict)
+        cnt = random.randint(2, 6)
+        for ii in range(cnt):
+            obj = cont.get_object("fake")
+        self.assertEqual(cont.client.connection.head_object.call_count, 1)
+
+    @patch('pyrax.cf_wrapper.client.Container', new=FakeContainer)
+    def test_get_object_no_cache(self):
+        cont = self.container
+        cont.client.connection.get_container = Mock()
+        cont.client.connection.head_object = Mock(return_value=fake_attdict)
+        cnt = random.randint(2, 6)
+        for ii in range(cnt):
+            obj = cont.get_object("fake", cached=False)
+        self.assertEqual(cont.client.connection.head_object.call_count, cnt)
+
+    @patch('pyrax.cf_wrapper.client.Container', new=FakeContainer)
     def test_get_object_missing(self):
         cont = self.container
         cont.client.connection.get_container = Mock()
@@ -146,6 +166,22 @@ class CF_ContainerTest(unittest.TestCase):
                 "Object GET failed: https://example.com/cont/some_object 404")
         cont.client.connection.head_object = Mock(side_effect=side_effect)
         self.assertRaises(exc.NoSuchObject, cont.get_object, "missing")
+
+    @patch('pyrax.cf_wrapper.client.Container', new=FakeContainer)
+    def test_list_subdirs(self):
+        cont = self.container
+        clt = cont.client
+        clt.list_container_subdirs = Mock()
+        marker = utils.random_name()
+        limit = utils.random_name()
+        prefix = utils.random_name()
+        delimiter = utils.random_name()
+        full_listing = utils.random_name()
+        cont.list_subdirs(marker=marker, limit=limit, prefix=prefix,
+                delimiter=delimiter, full_listing=full_listing)
+        clt.list_container_subdirs.assert_called_once_with(cont.name,
+                marker=marker, limit=limit, prefix=prefix, delimiter=delimiter,
+                full_listing=full_listing)
 
     @patch('pyrax.cf_wrapper.client.Container', new=FakeContainer)
     def test_store_object(self):
@@ -243,7 +279,23 @@ class CF_ContainerTest(unittest.TestCase):
         cont.client.connection.post_container = Mock()
         cont.set_metadata({"newkey": "newval"})
         cont.client.connection.post_container.assert_called_with(cont.name,
-                {"x-container-meta-newkey": "newval"}, response_dict=None)
+                {"X-Container-Meta-newkey": "newval"}, response_dict=None)
+
+    def test_set_metadata_prefix(self):
+        cont = self.container
+        cont.client.connection.post_container = Mock()
+        prefix = utils.random_name()
+        cont.set_metadata({"newkey": "newval"}, prefix=prefix)
+        cont.client.connection.post_container.assert_called_with(cont.name,
+                {"%snewkey" % prefix: "newval"}, response_dict=None)
+
+    def test_remove_metadata_key(self):
+        cont = self.container
+        cont.client.remove_container_metadata_key = Mock()
+        key = utils.random_name()
+        cont.remove_metadata_key(key)
+        cont.client.remove_container_metadata_key.assert_called_once_with(cont,
+                key)
 
     def test_set_web_index_page(self):
         cont = self.container
@@ -251,7 +303,7 @@ class CF_ContainerTest(unittest.TestCase):
         cont.client.connection.post_container = Mock()
         cont.set_web_index_page(page)
         cont.client.connection.post_container.assert_called_with(cont.name,
-                {"x-container-meta-web-index": page}, response_dict=None)
+                {"X-Container-Meta-Web-Index": page}, response_dict=None)
 
     def test_set_web_error_page(self):
         cont = self.container
@@ -259,7 +311,7 @@ class CF_ContainerTest(unittest.TestCase):
         cont.client.connection.post_container = Mock()
         cont.set_web_error_page(page)
         cont.client.connection.post_container.assert_called_with(cont.name,
-                {"x-container-meta-web-error": page}, response_dict=None)
+                {"X-Container-Meta-Web-Error": page}, response_dict=None)
 
     def test_make_public(self, ttl=None):
         cont = self.container
@@ -285,6 +337,30 @@ class CF_ContainerTest(unittest.TestCase):
         cont.make_private()
         cont.client.connection.cdn_request.assert_called_with("PUT",
                 [cont.name], hdrs={"X-CDN-Enabled": "False"})
+
+    def test_copy_object(self):
+        cont = self.container
+        cont.client.copy_object = Mock()
+        obj = utils.random_name()
+        new_cont = utils.random_name()
+        new_name = utils.random_name()
+        extra_info = utils.random_name()
+        cont.copy_object(obj, new_cont, new_obj_name=new_name,
+                extra_info=extra_info)
+        cont.client.copy_object.assert_called_once_with(cont, obj, new_cont,
+                new_obj_name=new_name, extra_info=extra_info)
+
+    def test_move_object(self):
+        cont = self.container
+        cont.client.move_object = Mock()
+        obj = utils.random_name()
+        new_cont = utils.random_name()
+        new_name = utils.random_name()
+        extra_info = utils.random_name()
+        cont.move_object(obj, new_cont, new_obj_name=new_name,
+                extra_info=extra_info)
+        cont.client.move_object.assert_called_once_with(cont, obj, new_cont,
+                new_obj_name=new_name, extra_info=extra_info)
 
     def test_change_object_content_type(self):
         cont = self.container
