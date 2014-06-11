@@ -172,7 +172,7 @@ class MailgunManager(BaseManager):
         ident = pyrax.identity
         data = {"account_id": ident.tenant_id, "auth_token": ident.token}
         try:
-            req = requests.get(url, params=data, headers=HEADERS)
+            req = requests.get(url, params=data, headers=HEADERS, verify=False)
             response = req.json()["api_key"]
         except KeyError:
             raise exceptions.AuthorizationFailure("(%s) %s" % (req.status_code,
@@ -479,7 +479,7 @@ class MailgunClient(BaseClient):
         try:
             print self.management_url + uri
             req = getattr(requests, method.lower())(self.management_url + uri,
-                headers=HEADERS, auth=self.auth, **kwargs)
+                headers=HEADERS, auth=self.auth, verify=False, **kwargs)
             print req.text
             print req.status_code
             response = req.json()
